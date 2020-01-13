@@ -23,6 +23,7 @@ include 'fiat-api',
         'fiat-github',
         'fiat-google-groups',
         'fiat-ldap',
+        'fiat-coding',
         'fiat-roles',
         'fiat-web'
 

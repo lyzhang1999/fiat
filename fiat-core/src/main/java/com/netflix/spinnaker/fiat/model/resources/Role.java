@@ -36,7 +36,8 @@ public class Role implements Resource, Viewable {
     FILE,
     GOOGLE_GROUPS,
     GITHUB_TEAMS,
-    LDAP
+    LDAP,
+    CODING
   }
 
   private Source source;
