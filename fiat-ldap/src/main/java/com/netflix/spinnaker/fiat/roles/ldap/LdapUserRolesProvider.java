@@ -26,8 +26,6 @@ import javax.naming.InvalidNameException;
 import javax.naming.Name;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.coding.e.grpc.CodingGrpcClient;
-import net.coding.e.proto.UserRoleProto;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -43,85 +41,56 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(value = "auth.group-membership.service", havingValue = "ldap")
 public class LdapUserRolesProvider implements UserRolesProvider {
+
   @Autowired @Setter private SpringSecurityLdapTemplate ldapTemplate;
 
   @Autowired @Setter private LdapConfig.ConfigProps configProps;
 
   @Override
   public List<Role> loadRoles(ExternalUser user) {
-    String EndPoint = "127.0.0.1:20153";
-    String HostPort[] = EndPoint.split("\\:");
     String userId = user.getId();
-    log.info("Ready get {} roles", userId);
-    CodingGrpcClient client = new CodingGrpcClient(HostPort[0], Integer.parseInt(HostPort[1]));
-    List<UserRoleProto.UserGroupToSpinnaker> response;
-    try {
-      response = client.GetUserRoles(userId);
-    } finally {
-      try {
-        client.shutdown();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
-    log.info("response is {}", response);
-    if (null == response || response.size() == 0) {
+
+    log.debug("loadRoles for user " + userId);
+    if (StringUtils.isEmpty(configProps.getGroupSearchBase())) {
       return new ArrayList<>();
     }
-    // CodingRoles 转为 Spinnaker 角色
-    HashSet<String> CodingUserRoles = new HashSet<String>();
-    response.forEach(
-        s -> {
-          if (s.getRoles() == "") {}
 
-          CodingUserRoles.add(s.getRoles());
-        });
-    log.info("CodingRoles Set is {}", CodingUserRoles);
-    return CodingUserRoles.stream()
-        .map(role -> new Role(role).setSource(Role.Source.CODING))
+    String fullUserDn = getUserFullDn(userId);
+
+    if (fullUserDn == null) {
+      // Likely a service account
+      log.debug("fullUserDn is null for {}", userId);
+      return new ArrayList<>();
+    }
+
+    String[] params = new String[] {fullUserDn, userId};
+
+    if (log.isDebugEnabled()) {
+      log.debug(
+          new StringBuilder("Searching for groups using ")
+              .append("\ngroupSearchBase: ")
+              .append(configProps.getGroupSearchBase())
+              .append("\ngroupSearchFilter: ")
+              .append(configProps.getGroupSearchFilter())
+              .append("\nparams: ")
+              .append(StringUtils.join(params, " :: "))
+              .append("\ngroupRoleAttributes: ")
+              .append(configProps.getGroupRoleAttributes())
+              .toString());
+    }
+
+    // Copied from org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator.
+    Set<String> userRoles =
+        ldapTemplate.searchForSingleAttributeValues(
+            configProps.getGroupSearchBase(),
+            configProps.getGroupSearchFilter(),
+            params,
+            configProps.getGroupRoleAttributes());
+
+    log.debug("Got roles for user " + userId + ": " + userRoles);
+    return userRoles.stream()
+        .map(role -> new Role(role).setSource(Role.Source.LDAP))
         .collect(Collectors.toList());
-    //    log.debug("loadRoles for user " + userId);
-    //    if (StringUtils.isEmpty(configProps.getGroupSearchBase())) {
-    //      return new ArrayList<>();
-    //    }
-    //
-    //    String fullUserDn = getUserFullDn(userId);
-    //
-    //    if (fullUserDn == null) {
-    //      // Likely a service account
-    //      log.debug("fullUserDn is null for {}", userId);
-    //      return new ArrayList<>();
-    //    }
-    //
-    //    String[] params = new String[] {fullUserDn, userId};
-    //
-    //    if (log.isDebugEnabled()) {
-    //      log.debug(
-    //          new StringBuilder("Searching for groups using ")
-    //              .append("\ngroupSearchBase: ")
-    //              .append(configProps.getGroupSearchBase())
-    //              .append("\ngroupSearchFilter: ")
-    //              .append(configProps.getGroupSearchFilter())
-    //              .append("\nparams: ")
-    //              .append(StringUtils.join(params, " :: "))
-    //              .append("\ngroupRoleAttributes: ")
-    //              .append(configProps.getGroupRoleAttributes())
-    //              .toString());
-    //    }
-    //
-    //    // Copied from
-    // org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator.
-    //    Set<String> userRoles =
-    //        ldapTemplate.searchForSingleAttributeValues(
-    //            configProps.getGroupSearchBase(),
-    //            configProps.getGroupSearchFilter(),
-    //            params,
-    //            configProps.getGroupRoleAttributes());
-    //
-    //    log.debug("Got roles for user " + userId + ": " + userRoles);
-    //    return userRoles.stream()
-    //        .map(role -> new Role(role).setSource(Role.Source.LDAP))
-    //        .collect(Collectors.toList());
   }
 
   @Override
