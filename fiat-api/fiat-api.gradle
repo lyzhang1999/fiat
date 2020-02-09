@@ -34,3 +34,23 @@ dependencies {
 
   testImplementation "org.slf4j:slf4j-api"
 }
+
+group 'com.coding.spinnaker.fiat'
+def artifactId = "fiat-api"
+
+apply plugin: 'maven'
+uploadArchives {
+  repositories {
+    mavenDeployer {
+      repository(url: "${codingArtifactsRepoUrl}") {
+        authentication(
+                userName: "${codingArtifactsGradleUsername}",
+                password: "${codingArtifactsGradlePassword}"
+        )
+      }
+      pom.version = "$fiatFixVersion"
+      pom.artifactId = "$artifactId"
+      pom.groupId = "$project.group"
+    }
+  }
+}
