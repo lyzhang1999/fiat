@@ -221,6 +221,7 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
     }
 
     UserPermission.View permission = getPermission(username);
+    log.debug("--------------- permission is {}", permission.toString());
     boolean hasPermission = permissionContains(permission, resourceName.toString(), r, a);
 
     authorizationFailure.set(
@@ -271,6 +272,7 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
           permissionsCache.get(
               username,
               (loadUserName) -> {
+                log.debug("------------------  no cache enter refresh -------------------");
                 cacheHit.set(false);
                 try {
                   return AuthenticatedRequest.propagate(
@@ -287,7 +289,8 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
                               legacyFallback.set(true);
                               successfulLookup.set(false);
                               exception.set(e);
-
+                              log.debug(
+                                  "------------------  no cache return buildFallbackView -------------------");
                               // this fallback permission will be temporarily cached in the
                               // permissions cache
                               return buildFallbackView();
@@ -322,6 +325,7 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
     registry.counter(id).increment();
 
     if (view != null && view.isLegacyFallback() && view.getAccounts().isEmpty()) {
+      log.debug("------------------  rebuild a potentially stale -------------------");
       // rebuild a potentially stale (could have come from the cache) legacy fallback
       view = buildFallbackView();
 
@@ -330,7 +334,7 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
           username,
           getAccountsForView(view));
     }
-
+    log.debug("------------------  view is {} -------------------", view.toString());
     return view;
   }
 
@@ -370,7 +374,14 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
       String resourceName,
       ResourceType resourceType,
       Authorization authorization) {
+    log.debug(
+        "------------- permissionContains permission {},resourceName {},resourceType {},authorization {}",
+        permission,
+        resourceName,
+        resourceType,
+        authorization);
     if (permission == null) {
+      log.debug("------------- permission null 403 ------------");
       return false;
     }
 
@@ -404,6 +415,12 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
           // allow access to any applications w/o explicit permissions
           return true;
         }
+        log.debug(
+            "------------- applicationHasPermissions is {} ------------",
+            applicationHasPermissions);
+        log.debug(
+            "------------- permission.getApplications is {} ------------",
+            permission.getApplications().toString());
         return permission.isLegacyFallback() || containsAuth.apply(permission.getApplications());
       case SERVICE_ACCOUNT:
         return permission.getServiceAccounts().stream()
