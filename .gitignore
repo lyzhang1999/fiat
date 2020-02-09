@@ -7,3 +7,4 @@ out/
 /.idea/
 /.shelf/
 .idea
+/fiat-grpc/src/generated
