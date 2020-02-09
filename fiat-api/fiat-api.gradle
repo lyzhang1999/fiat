@@ -36,7 +36,6 @@ dependencies {
 }
 
 group 'com.coding.spinnaker.fiat'
-version '1.8.4.2-Beta'
 def artifactId = "fiat-api"
 
 apply plugin: 'maven'
@@ -49,7 +48,7 @@ uploadArchives {
                 password: "${codingArtifactsGradlePassword}"
         )
       }
-      pom.version = "$project.version"
+      pom.version = "$fiatFixVersion"
       pom.artifactId = "$artifactId"
       pom.groupId = "$project.group"
     }
