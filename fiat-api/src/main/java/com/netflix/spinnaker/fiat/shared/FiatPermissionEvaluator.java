@@ -278,6 +278,8 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
                   return AuthenticatedRequest.propagate(
                           () -> {
                             try {
+                              log.debug(
+                                  "------------------  get permission from fiat -------------------");
                               return retryHandler.retry(
                                   "getUserPermission for " + loadUserName,
                                   () -> fiatService.getUserPermission(loadUserName));
@@ -334,7 +336,7 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
           username,
           getAccountsForView(view));
     }
-    log.debug("------------------  view is {} -------------------", view.toString());
+    log.debug("------------------  get view is {} -------------------", view.toString());
     return view;
   }
 
@@ -348,6 +350,21 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
     val authentication = SecurityContextHolder.getContext().getAuthentication();
     val permission = getPermission(getUsername(authentication));
     return permission != null;
+  }
+
+  public boolean deletePermissioncache() {
+    if (!fiatStatus.isEnabled()) {
+      return true;
+    }
+
+    val authentication = SecurityContextHolder.getContext().getAuthentication();
+    try {
+      permissionsCache.invalidate(getUsername(authentication));
+    } catch (Exception e) {
+      log.info("Try to deletePermissioncache when not cache key {}", getUsername(authentication));
+    }
+    // 强制刷新缓存，不作为鉴权依据
+    return true;
   }
 
   public static Optional<AuthorizationFailure> getAuthorizationFailure() {
