@@ -8,6 +8,7 @@ RUN ./gradlew --no-daemon fiat-web:installDist -x test
 FROM openjdk:8-jre-alpine
 MAINTAINER delivery-engineering@netflix.com
 COPY --from=0 /compiled_sources/fiat-web/build/install/fiat /opt/fiat
+COPY --from=0 /compiled_sources/coding-deploy/config /opt/spinnaker/config
 RUN apk --no-cache add --update bash
 RUN adduser -D -S spinnaker
 USER spinnaker
