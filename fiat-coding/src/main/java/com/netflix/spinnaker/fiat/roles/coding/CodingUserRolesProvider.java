@@ -42,9 +42,10 @@ public class CodingUserRolesProvider implements UserRolesProvider {
     log.info(" ================= coding loadRoles {}", configProps.getEndpoint());
     String EndPotin = configProps.getEndpoint();
     String HostPost[] = EndPotin.split("\\:");
-    if (null == HostPost || HostPost.length != 2) {
+    if (HostPost.length != 2) {
       return new ArrayList<>();
     }
+
     String userId = user.getId();
     CodingGrpcClient client = new CodingGrpcClient(HostPost[0], Integer.parseInt(HostPost[1]));
     List<UserRoleProto.UserGroupToSpinnaker> response;
