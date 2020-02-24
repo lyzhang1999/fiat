@@ -50,8 +50,8 @@ public class CodingUserRolesProvider implements UserRolesProvider {
     List<UserRoleProto.UserGroupToSpinnaker> response = null;
     try {
       response = client.GetUserRoles(userId);
-    } catch(Exception e) {
-      log.warn("",e);
+    } catch (Exception e) {
+      log.warn("", e);
       return new ArrayList<>();
     }
     log.info("response is {}", response);
