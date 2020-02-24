@@ -31,6 +31,7 @@ import com.netflix.spinnaker.security.User;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -42,6 +43,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import net.coding.spinnaker.common.helper.TeamHelper;
+import net.coding.spinnaker.common.security.model.AuthorizedUser;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -189,7 +192,11 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
   }
 
   public boolean hasPermission(
-      String username, Serializable resourceName, String resourceType, Object authorization) {
+      String username,
+      AuthorizedUser user,
+      Serializable resourceName,
+      String resourceType,
+      Object authorization) {
     if (!fiatStatus.isEnabled()) {
       return true;
     }
@@ -217,7 +224,11 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
     }
 
     if (r == ResourceType.APPLICATION && StringUtils.isNotEmpty(resourceName.toString())) {
-      resourceName = resourceName.toString();
+      if (Objects.isNull(user)) {
+        resourceName = resourceName.toString();
+      } else {
+        resourceName = TeamHelper.withSuffix(user.getTeamId(), resourceName.toString());
+      }
     }
 
     UserPermission.View permission = getPermission(username);
@@ -249,7 +260,12 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
     if (!fiatStatus.isEnabled()) {
       return true;
     }
-    return hasPermission(getUsername(authentication), resourceName, resourceType, authorization);
+    return hasPermission(
+        getUsername(authentication),
+        getAuthorizedUser(authentication),
+        resourceName,
+        resourceType,
+        authorization);
   }
 
   public void invalidatePermission(String username) {
@@ -384,6 +400,19 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
       }
     }
     return username;
+  }
+
+  private AuthorizedUser getAuthorizedUser(Authentication authentication) {
+    if (authentication == null
+        || !authentication.isAuthenticated()
+        || authentication.getPrincipal() == null) {
+      return null;
+    }
+    Object principal = authentication.getPrincipal();
+    if (principal instanceof AuthorizedUser) {
+      return (AuthorizedUser) principal;
+    }
+    return null;
   }
 
   private boolean permissionContains(
