@@ -47,15 +47,12 @@ public class CodingUserRolesProvider implements UserRolesProvider {
     }
     String userId = user.getId();
     CodingGrpcClient client = new CodingGrpcClient(HostPost[0], Integer.parseInt(HostPost[1]));
-    List<UserRoleProto.UserGroupToSpinnaker> response;
+    List<UserRoleProto.UserGroupToSpinnaker> response = null;
     try {
       response = client.GetUserRoles(userId);
-    } finally {
-      try {
-        client.shutdown();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
+    } catch(Exception e) {
+      log.warn("",e);
+      return new ArrayList<>();
     }
     log.info("response is {}", response);
     if (null == response || response.size() == 0) {
