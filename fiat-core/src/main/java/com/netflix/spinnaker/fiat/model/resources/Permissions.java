@@ -19,6 +19,7 @@ package com.netflix.spinnaker.fiat.model.resources;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.netflix.spinnaker.fiat.model.Authorization;
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
@@ -32,7 +33,7 @@ import lombok.val;
  */
 @ToString
 @EqualsAndHashCode
-public class Permissions {
+public class Permissions implements Serializable {
 
   public static final Permissions EMPTY = Builder.fromMap(Collections.emptyMap());
 
