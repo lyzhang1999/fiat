@@ -32,10 +32,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
 @Configuration
-@ComponentScan({
-  "com.netflix.spinnaker.fiat",
-  "com.netflix.spinnaker.config",
-})
+@ComponentScan({"com.netflix.spinnaker.fiat", "com.netflix.spinnaker.config", "net.coding.e.grpc"})
 @Import(ErrorConfiguration.class)
 @EnableAutoConfiguration(
     exclude = {
