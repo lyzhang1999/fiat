@@ -35,9 +35,9 @@ import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.coding.e.grpc.CodingGrpcClient;
+import net.coding.e.proto.UserRoleProto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import net.coding.e.proto.UserRoleProto;
 
 @Slf4j
 @RestController
@@ -106,7 +106,7 @@ public class AuthorizeController {
     }
     if (response != null) {
       HashMap map = new HashMap<String, String>();
-      map.put("status","true");
+      map.put("status", "true");
       return map;
     }
     return new HashMap<>();
