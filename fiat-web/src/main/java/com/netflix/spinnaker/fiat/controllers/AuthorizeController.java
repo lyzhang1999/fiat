@@ -34,8 +34,10 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import net.coding.e.grpc.CodingGrpcClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import net.coding.e.proto.UserRoleProto;
 
 @Slf4j
 @RestController
@@ -47,6 +49,7 @@ public class AuthorizeController {
   private final FiatServerConfigurationProperties configProps;
   private final ResourcePermissionProvider<Application> applicationResourcePermissionProvider;
   private final ObjectMapper objectMapper;
+  @Autowired private CodingGrpcClient codingGrpcClient;
 
   private final Id getUserPermissionCounterId;
 
@@ -90,6 +93,23 @@ public class AuthorizeController {
   @RequestMapping(value = "/{userId:.+}", method = RequestMethod.GET)
   public UserPermission.View getUserPermission(@PathVariable String userId) {
     return getUserPermissionView(userId);
+  }
+
+  @RequestMapping(value = "/liveness/{userGK:.+}", method = RequestMethod.GET)
+  public HashMap getCodingUser(@PathVariable String userGK) {
+    List<UserRoleProto.UserGroupToSpinnaker> response = null;
+    try {
+      response = codingGrpcClient.GetUserRoles(userGK);
+    } catch (Exception e) {
+      log.warn("", e);
+      return new HashMap<>();
+    }
+    if (response != null) {
+      HashMap map = new HashMap<String, String>();
+      map.put("status","true");
+      return map;
+    }
+    return new HashMap<>();
   }
 
   @RequestMapping(value = "/{userId:.+}/accounts", method = RequestMethod.GET)

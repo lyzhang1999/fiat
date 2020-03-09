@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
  * @author wangwei CD-Group
  * @date 2020/03/06 5:21 下午
  */
+
 @Service
 @Component
 public class CodingGrpcManager {
