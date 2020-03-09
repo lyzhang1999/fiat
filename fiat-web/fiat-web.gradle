@@ -35,6 +35,7 @@ dependencies {
 
   implementation project(':fiat-core')
   implementation project(':fiat-roles')
+  implementation project(':fiat-grpc')
 
   // Add each included authz provider as a runtime dependency
   gradle.includedProviderProjects.each {

@@ -34,23 +34,17 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(value = "auth.group-membership.service", havingValue = "coding")
 public class CodingUserRolesProvider implements UserRolesProvider {
-
   @Autowired @Setter private CodingConfig.ConfigProps configProps;
+
+  @Autowired private CodingGrpcClient codingGrpcClient;
 
   @Override
   public List<Role> loadRoles(ExternalUser user) {
-    log.info(" ================= coding loadRoles {}", configProps.getEndpoint());
-    String EndPotin = configProps.getEndpoint();
-    String HostPost[] = EndPotin.split("\\:");
-    if (HostPost.length != 2) {
-      return new ArrayList<>();
-    }
 
     String userId = user.getId();
-    CodingGrpcClient client = new CodingGrpcClient(HostPost[0], Integer.parseInt(HostPost[1]));
     List<UserRoleProto.UserGroupToSpinnaker> response = null;
     try {
-      response = client.GetUserRoles(userId);
+      response = codingGrpcClient.GetUserRoles(userId);
     } catch (Exception e) {
       log.warn("", e);
       return new ArrayList<>();

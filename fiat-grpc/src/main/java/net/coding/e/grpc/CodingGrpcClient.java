@@ -16,13 +16,14 @@
 
 package net.coding.e.grpc;
 
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
+import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import net.coding.e.proto.UserRoleProto;
 import net.coding.e.proto.UserRoleServiceGrpc;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 /**
  * this module only use for CD
@@ -30,25 +31,16 @@ import net.coding.e.proto.UserRoleServiceGrpc;
  * @author wangwei CD-Group
  * @date 2020/01/17 10:37 上午
  */
+@Service
+@Component
 public class CodingGrpcClient {
-  private final ManagedChannel channel;
-  private final UserRoleServiceGrpc.UserRoleServiceBlockingStub blockingStub;
-
-  public CodingGrpcClient(String host, int port) {
-    this(ManagedChannelBuilder.forAddress(host, port).usePlaintext().build());
-  }
-
-  public CodingGrpcClient(ManagedChannel channel) {
-    this.channel = channel;
-    blockingStub = UserRoleServiceGrpc.newBlockingStub(channel);
-  }
-
-  public void shutdown() throws InterruptedException {
-    channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-  }
+  @Autowired private CodingGrpcManager codingGrpcManager;
 
   public List<UserRoleProto.UserGroupToSpinnaker> GetUserRoles(String gk) {
     try {
+      Channel channel = codingGrpcManager.openChannel();
+      UserRoleServiceGrpc.UserRoleServiceBlockingStub blockingStub =
+          UserRoleServiceGrpc.newBlockingStub(channel);
       UserRoleProto.GetUserRoleByGKRequest request =
           UserRoleProto.GetUserRoleByGKRequest.newBuilder().setUserGk(gk).build();
       UserRoleProto.UserGroupToSpinnakerResponse response =
