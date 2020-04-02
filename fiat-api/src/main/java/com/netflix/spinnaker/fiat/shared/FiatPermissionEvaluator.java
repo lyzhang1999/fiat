@@ -31,7 +31,6 @@ import com.netflix.spinnaker.security.User;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -43,8 +42,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import net.coding.spinnaker.common.helper.TeamHelper;
-import net.coding.spinnaker.common.security.model.AuthorizedUser;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -192,11 +189,7 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
   }
 
   public boolean hasPermission(
-      String username,
-      AuthorizedUser user,
-      Serializable resourceName,
-      String resourceType,
-      Object authorization) {
+      String username, Serializable resourceName, String resourceType, Object authorization) {
     if (!fiatStatus.isEnabled()) {
       return true;
     }
@@ -224,15 +217,10 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
     }
 
     if (r == ResourceType.APPLICATION && StringUtils.isNotEmpty(resourceName.toString())) {
-      if (Objects.isNull(user)) {
-        resourceName = resourceName.toString();
-      } else {
-        resourceName = TeamHelper.withSuffix(user.getTeamId(), resourceName.toString());
-      }
+      resourceName = resourceName.toString();
     }
 
     UserPermission.View permission = getPermission(username);
-    log.debug("--------------- permission is {}", permission.toString());
     boolean hasPermission = permissionContains(permission, resourceName.toString(), r, a);
 
     authorizationFailure.set(
@@ -260,12 +248,7 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
     if (!fiatStatus.isEnabled()) {
       return true;
     }
-    return hasPermission(
-        getUsername(authentication),
-        getAuthorizedUser(authentication),
-        resourceName,
-        resourceType,
-        authorization);
+    return hasPermission(getUsername(authentication), resourceName, resourceType, authorization);
   }
 
   public void invalidatePermission(String username) {
@@ -288,14 +271,11 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
           permissionsCache.get(
               username,
               (loadUserName) -> {
-                log.debug("------------------  no cache enter refresh -------------------");
                 cacheHit.set(false);
                 try {
                   return AuthenticatedRequest.propagate(
                           () -> {
                             try {
-                              log.debug(
-                                  "------------------  get permission from fiat -------------------");
                               return retryHandler.retry(
                                   "getUserPermission for " + loadUserName,
                                   () -> fiatService.getUserPermission(loadUserName));
@@ -307,8 +287,7 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
                               legacyFallback.set(true);
                               successfulLookup.set(false);
                               exception.set(e);
-                              log.debug(
-                                  "------------------  no cache return buildFallbackView -------------------");
+
                               // this fallback permission will be temporarily cached in the
                               // permissions cache
                               return buildFallbackView();
@@ -343,7 +322,6 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
     registry.counter(id).increment();
 
     if (view != null && view.isLegacyFallback() && view.getAccounts().isEmpty()) {
-      log.debug("------------------  rebuild a potentially stale -------------------");
       // rebuild a potentially stale (could have come from the cache) legacy fallback
       view = buildFallbackView();
 
@@ -352,7 +330,7 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
           username,
           getAccountsForView(view));
     }
-    log.debug("------------------  get view is {} -------------------", view.toString());
+
     return view;
   }
 
@@ -366,21 +344,6 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
     val authentication = SecurityContextHolder.getContext().getAuthentication();
     val permission = getPermission(getUsername(authentication));
     return permission != null;
-  }
-
-  public boolean deletePermissioncache() {
-    if (!fiatStatus.isEnabled()) {
-      return true;
-    }
-
-    val authentication = SecurityContextHolder.getContext().getAuthentication();
-    try {
-      permissionsCache.invalidate(getUsername(authentication));
-    } catch (Exception e) {
-      log.info("Try to deletePermissioncache when not cache key {}", getUsername(authentication));
-    }
-    // 强制刷新缓存，不作为鉴权依据
-    return true;
   }
 
   public static Optional<AuthorizationFailure> getAuthorizationFailure() {
@@ -402,32 +365,12 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
     return username;
   }
 
-  private AuthorizedUser getAuthorizedUser(Authentication authentication) {
-    if (authentication == null
-        || !authentication.isAuthenticated()
-        || authentication.getPrincipal() == null) {
-      return null;
-    }
-    Object principal = authentication.getPrincipal();
-    if (principal instanceof AuthorizedUser) {
-      return (AuthorizedUser) principal;
-    }
-    return null;
-  }
-
   private boolean permissionContains(
       UserPermission.View permission,
       String resourceName,
       ResourceType resourceType,
       Authorization authorization) {
-    log.debug(
-        "------------- permissionContains permission {},resourceName {},resourceType {},authorization {}",
-        permission,
-        resourceName,
-        resourceType,
-        authorization);
     if (permission == null) {
-      log.debug("------------- permission null 403 ------------");
       return false;
     }
 
@@ -461,12 +404,6 @@ public class FiatPermissionEvaluator implements PermissionEvaluator {
           // allow access to any applications w/o explicit permissions
           return true;
         }
-        log.debug(
-            "------------- applicationHasPermissions is {} ------------",
-            applicationHasPermissions);
-        log.debug(
-            "------------- permission.getApplications is {} ------------",
-            permission.getApplications().toString());
         return permission.isLegacyFallback() || containsAuth.apply(permission.getApplications());
       case SERVICE_ACCOUNT:
         return permission.getServiceAccounts().stream()

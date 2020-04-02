@@ -7,23 +7,3 @@ dependencies {
   testImplementation "org.springframework.boot:spring-boot"
   testImplementation "com.fasterxml.jackson.core:jackson-databind"
 }
-
-group 'net.coding.spinnaker.fiat'
-def artifactId = "fiat-core"
-
-apply plugin: 'maven'
-uploadArchives {
-  repositories {
-    mavenDeployer {
-      repository(url: "${codingArtifactsRepoUrl}") {
-        authentication(
-                userName: "${codingArtifactsGradleUsername}",
-                password: "${codingArtifactsGradlePassword}"
-        )
-      }
-      pom.version = "$fiatFixVersion"
-      pom.artifactId = "$artifactId"
-      pom.groupId = "$project.group"
-    }
-  }
-}
